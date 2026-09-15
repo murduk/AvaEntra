@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using AvaEntra.Server.Data;
 using AvaEntra.Server.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
 namespace AvaEntra.Server.Admin;
@@ -9,46 +11,91 @@ public static class AdminEndpoints
     public static void MapAdminEndpoints(this WebApplication app)
     {
         var g = app.MapGroup("/api/admin");
-        g.MapGet("/overview", Overview);
-        g.MapGet("/tenant", GetTenant);
-        g.MapPut("/tenant", UpdateTenant);
+        g.MapPost("/login", Login).AllowAnonymous();
+        g.MapPost("/logout", (Delegate)Logout);
+        g.MapGet("/me", (Delegate)Me);
 
-        g.MapGet("/users", ListUsers);
-        g.MapPost("/users", CreateUser);
-        g.MapGet("/users/{id:guid}", GetUser);
-        g.MapPut("/users/{id:guid}", UpdateUser);
-        g.MapDelete("/users/{id:guid}", DeleteUser);
-        g.MapPost("/users/{id:guid}/password", SetPassword);
-        g.MapPost("/users/{id:guid}/groups/{groupId:guid}", AddUserToGroup);
-        g.MapDelete("/users/{id:guid}/groups/{groupId:guid}", RemoveUserFromGroup);
-        g.MapPost("/users/{id:guid}/roles", AssignRole);
-        g.MapDelete("/users/{id:guid}/roles/{assignmentId:guid}", UnassignRole);
+        var secured = g.MapGroup("").RequireAuthorization(AdminAuth.Policy);
+        secured.MapGet("/overview", Overview);
+        secured.MapGet("/tenant", GetTenant);
+        secured.MapPut("/tenant", UpdateTenant);
 
-        g.MapGet("/groups", ListGroups);
-        g.MapPost("/groups", CreateGroup);
-        g.MapGet("/groups/{id:guid}", GetGroup);
-        g.MapPut("/groups/{id:guid}", UpdateGroup);
-        g.MapDelete("/groups/{id:guid}", DeleteGroup);
-        g.MapPost("/groups/{id:guid}/members/{userId:guid}", AddMember);
-        g.MapDelete("/groups/{id:guid}/members/{userId:guid}", RemoveMember);
+        secured.MapGet("/users", ListUsers);
+        secured.MapPost("/users", CreateUser);
+        secured.MapGet("/users/{id:guid}", GetUser);
+        secured.MapPut("/users/{id:guid}", UpdateUser);
+        secured.MapDelete("/users/{id:guid}", DeleteUser);
+        secured.MapPost("/users/{id:guid}/password", SetPassword);
+        secured.MapPost("/users/{id:guid}/groups/{groupId:guid}", AddUserToGroup);
+        secured.MapDelete("/users/{id:guid}/groups/{groupId:guid}", RemoveUserFromGroup);
+        secured.MapPost("/users/{id:guid}/roles", AssignRole);
+        secured.MapDelete("/users/{id:guid}/roles/{assignmentId:guid}", UnassignRole);
 
-        g.MapGet("/applications", ListApps);
-        g.MapPost("/applications", CreateApp);
-        g.MapGet("/applications/{id:guid}", GetApp);
-        g.MapPut("/applications/{id:guid}", UpdateApp);
-        g.MapDelete("/applications/{id:guid}", DeleteApp);
-        g.MapPost("/applications/{id:guid}/redirects", AddRedirect);
-        g.MapDelete("/applications/{id:guid}/redirects/{rid:guid}", DeleteRedirect);
-        g.MapPost("/applications/{id:guid}/secrets", AddSecret);
-        g.MapDelete("/applications/{id:guid}/secrets/{sid:guid}", DeleteSecret);
-        g.MapPost("/applications/{id:guid}/scopes", AddScope);
-        g.MapPut("/applications/{id:guid}/scopes/{sid:guid}", UpdateScope);
-        g.MapDelete("/applications/{id:guid}/scopes/{sid:guid}", DeleteScope);
-        g.MapPost("/applications/{id:guid}/roles", AddRole);
-        g.MapPut("/applications/{id:guid}/roles/{rid:guid}", UpdateRole);
-        g.MapDelete("/applications/{id:guid}/roles/{rid:guid}", DeleteRole);
+        secured.MapGet("/groups", ListGroups);
+        secured.MapPost("/groups", CreateGroup);
+        secured.MapGet("/groups/{id:guid}", GetGroup);
+        secured.MapPut("/groups/{id:guid}", UpdateGroup);
+        secured.MapDelete("/groups/{id:guid}", DeleteGroup);
+        secured.MapPost("/groups/{id:guid}/members/{userId:guid}", AddMember);
+        secured.MapDelete("/groups/{id:guid}/members/{userId:guid}", RemoveMember);
 
-        g.MapGet("/logs", Logs);
+        secured.MapGet("/applications", ListApps);
+        secured.MapPost("/applications", CreateApp);
+        secured.MapGet("/applications/{id:guid}", GetApp);
+        secured.MapPut("/applications/{id:guid}", UpdateApp);
+        secured.MapDelete("/applications/{id:guid}", DeleteApp);
+        secured.MapPost("/applications/{id:guid}/redirects", AddRedirect);
+        secured.MapDelete("/applications/{id:guid}/redirects/{rid:guid}", DeleteRedirect);
+        secured.MapPost("/applications/{id:guid}/secrets", AddSecret);
+        secured.MapDelete("/applications/{id:guid}/secrets/{sid:guid}", DeleteSecret);
+        secured.MapPost("/applications/{id:guid}/scopes", AddScope);
+        secured.MapPut("/applications/{id:guid}/scopes/{sid:guid}", UpdateScope);
+        secured.MapDelete("/applications/{id:guid}/scopes/{sid:guid}", DeleteScope);
+        secured.MapPost("/applications/{id:guid}/roles", AddRole);
+        secured.MapPut("/applications/{id:guid}/roles/{rid:guid}", UpdateRole);
+        secured.MapDelete("/applications/{id:guid}/roles/{rid:guid}", DeleteRole);
+
+        secured.MapGet("/logs", Logs);
+    }
+
+    private static async Task<IResult> Login(HttpContext http, IOptions<AvaEntraOptions> options, AdminLoginBody body)
+    {
+        var opts = options.Value;
+        var username = (body.Username ?? "").Trim();
+        var password = body.Password ?? "";
+        if (!FixedEquals(username, opts.AdminUsername) || !FixedEquals(password, opts.AdminPassword))
+            return Results.Json(new { error = "Invalid username or password." }, statusCode: 401);
+
+        var identity = new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, opts.AdminUsername),
+            new Claim(AdminAuth.ClaimType, "true")
+        ], AdminAuth.Scheme);
+        await http.SignInAsync(AdminAuth.Scheme, new ClaimsPrincipal(identity));
+        return Results.Json(new { username = opts.AdminUsername });
+    }
+
+    private static async Task<IResult> Logout(HttpContext http)
+    {
+        await http.SignOutAsync(AdminAuth.Scheme);
+        return Results.Ok(new { ok = true });
+    }
+
+    private static async Task<IResult> Me(HttpContext http)
+    {
+        var result = await http.AuthenticateAsync(AdminAuth.Scheme);
+        if (!result.Succeeded || result.Principal?.HasClaim(AdminAuth.ClaimType, "true") != true)
+            return Results.Unauthorized();
+
+        return Results.Json(new { username = result.Principal.Identity?.Name });
+    }
+
+    private static bool FixedEquals(string a, string b)
+    {
+        var ba = System.Text.Encoding.UTF8.GetBytes(a);
+        var bb = System.Text.Encoding.UTF8.GetBytes(b);
+        if (ba.Length != bb.Length) return false;
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(ba, bb);
     }
 
     private static IResult Overview(DirectoryStore store, TokenService tokens, IOptions<AvaEntraOptions> options)
@@ -82,9 +129,9 @@ public static class AdminEndpoints
                 apiClientId = WellKnown.ApiClientId,
                 apiIdentifier = WellKnown.ApiIdentifier,
                 backendClientId = WellKnown.BackendClientId,
-                backendSecret = WellKnown.BackendSecret,
+                backendSecret = options.Value.SeedBackendSecret,
                 sampleScope = $"{WellKnown.ApiIdentifier}/access_as_user",
-                defaultPassword = WellKnown.DefaultPassword
+                defaultPassword = options.Value.SeedUserPassword
             },
             msalBrowser = new
             {
@@ -128,7 +175,7 @@ public static class AdminEndpoints
         return user is null ? Results.NotFound() : Results.Json(UserDto(d, user, true));
     }
 
-    private static async Task<IResult> CreateUser(DirectoryStore store, UserWrite body)
+    private static async Task<IResult> CreateUser(DirectoryStore store, UserWrite body, IOptions<AvaEntraOptions> options)
     {
         if (string.IsNullOrWhiteSpace(body.UserPrincipalName) || string.IsNullOrWhiteSpace(body.DisplayName))
             return Results.BadRequest(new { error = "userPrincipalName and displayName are required." });
@@ -142,7 +189,7 @@ public static class AdminEndpoints
             GivenName = body.GivenName,
             Surname = body.Surname,
             Mail = body.Mail ?? body.UserPrincipalName.Trim(),
-            PasswordHash = Crypto.HashPassword(string.IsNullOrEmpty(body.Password) ? WellKnown.DefaultPassword : body.Password),
+            PasswordHash = Crypto.HashPassword(string.IsNullOrEmpty(body.Password) ? options.Value.SeedUserPassword : body.Password),
             Enabled = body.Enabled ?? true
         };
         await store.UpdateAsync(d => d.Users.Add(user));
@@ -560,6 +607,7 @@ public static class AdminEndpoints
         Enum.TryParse<ApplicationKind>(kind, true, out var parsed) ? parsed : ApplicationKind.Spa;
 }
 
+public sealed record AdminLoginBody(string? Username, string? Password);
 public sealed record TenantUpdate(string? Name, string? Domain);
 public sealed record UserWrite(string? UserPrincipalName, string? DisplayName, string? GivenName, string? Surname, string? Mail, string? Password, bool? Enabled);
 public sealed record PasswordWrite(string Password);

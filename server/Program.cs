@@ -5,6 +5,7 @@ using AvaEntra.Server.Graph;
 using AvaEntra.Server.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ builder.Services.AddSingleton<SigningKeyService>();
 builder.Services.AddSingleton<TokenService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.Cookie.Name = "AvaEntra.Session";
         options.Cookie.HttpOnly = true;
@@ -32,8 +33,34 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         };
+    })
+    .AddCookie(AdminAuth.Scheme, options =>
+    {
+        options.Cookie.Name = AdminAuth.CookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
     });
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AdminAuth.Policy, policy =>
+        policy.AddAuthenticationSchemes(AdminAuth.Scheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim(AdminAuth.ClaimType, "true"));
+});
+
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.AllowAnyHeader()
         .AllowAnyMethod()
@@ -41,6 +68,10 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
         .AllowCredentials()));
 
 var app = builder.Build();
+
+var opts = app.Services.GetRequiredService<IOptions<AvaEntraOptions>>().Value;
+if (string.IsNullOrWhiteSpace(opts.AdminUsername) || string.IsNullOrWhiteSpace(opts.AdminPassword))
+    throw new InvalidOperationException("AvaEntra:AdminUsername and AvaEntra:AdminPassword must be set (env AvaEntra__AdminUsername / AvaEntra__AdminPassword).");
 
 app.Services.GetRequiredService<DirectoryStore>().Initialize();
 app.Services.GetRequiredService<SigningKeyService>().Initialize();

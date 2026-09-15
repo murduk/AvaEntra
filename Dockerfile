@@ -30,6 +30,10 @@ COPY --from=build /app .
 USER $APP_UID
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV AvaEntra__SeedUserPassword=Passw0rd!
+ENV AvaEntra__SeedBackendSecret=dev-backend-secret
+ENV AvaEntra__AdminUsername=admin
+ENV AvaEntra__AdminPassword=AdminPassw0rd!
 EXPOSE 8080
 VOLUME /app/storage
 ENTRYPOINT ["dotnet", "AvaEntra.Server.dll"]

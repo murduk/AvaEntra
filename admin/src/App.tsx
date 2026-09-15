@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import { api } from "./api";
 import Overview from "./pages/Overview";
 import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
@@ -7,8 +9,32 @@ import GroupDetail from "./pages/GroupDetail";
 import Applications from "./pages/Applications";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Logs from "./pages/Logs";
+import Login from "./pages/Login";
 
 export default function App() {
+  const [username, setUsername] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    api.get<{ username: string }>("/api/admin/me")
+      .then((me) => setUsername(me.username))
+      .catch(() => setUsername(null))
+      .finally(() => setChecking(false));
+  }, []);
+
+  async function logout() {
+    await api.post("/api/admin/logout");
+    setUsername(null);
+  }
+
+  if (checking) {
+    return <div className="login-screen"><p className="muted">Loading…</p></div>;
+  }
+
+  if (!username) {
+    return <Login onLoggedIn={setUsername} />;
+  }
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -28,8 +54,11 @@ export default function App() {
       </aside>
       <div className="main">
         <div className="topbar">
-          <span className="muted">Directory</span>
-          <a href="http://localhost:5100/login" target="_blank" rel="noreferrer">Open sign-in</a>
+          <span className="muted">Signed in as {username}</span>
+          <div className="row">
+            <a href="/login" target="_blank" rel="noreferrer">Open IdP sign-in</a>
+            <button className="btn small" onClick={() => void logout()}>Sign out</button>
+          </div>
         </div>
         <div className="content">
           <Routes>

@@ -20,7 +20,5 @@ public static class WellKnown
     public static readonly Guid ApiReaderRoleId = Guid.Parse("66222222-2222-2222-2222-222222222222");
     public static readonly Guid ApiWriterRoleId = Guid.Parse("66333333-3333-3333-3333-333333333333");
 
-    public const string DefaultPassword = "Passw0rd!";
-    public const string BackendSecret = "dev-backend-secret";
     public const string ApiIdentifier = "api://sample-api";
 }

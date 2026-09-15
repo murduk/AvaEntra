@@ -44,6 +44,10 @@ The image restores NuGet packages from **nuget.org** (the local `nuget.config` i
 docker build -t avaentra .
 docker run --rm -p 5100:8080 \
   -e AvaEntra__PublicOrigin=http://localhost:5100 \
+  -e AvaEntra__SeedUserPassword=Passw0rd! \
+  -e AvaEntra__SeedBackendSecret=dev-backend-secret \
+  -e AvaEntra__AdminUsername=admin \
+  -e AvaEntra__AdminPassword=AdminPassw0rd! \
   -v avaentra-data:/app/storage \
   avaentra
 ```
@@ -60,18 +64,25 @@ docker pull ghcr.io/<owner>/avaentra:latest
 
 Created on first run in `server/storage/`. Delete that folder to reset.
 
+Credentials from config / environment:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `AvaEntra__AdminUsername` | `admin` | Management UI username |
+| `AvaEntra__AdminPassword` | `AdminPassw0rd!` | Management UI password |
+| `AvaEntra__SeedUserPassword` | `Passw0rd!` | Password for seeded directory users (first run only) |
+| `AvaEntra__SeedBackendSecret` | `dev-backend-secret` | Client secret for Sample Backend (first run only) |
+
 | Item | Value |
 | --- | --- |
 | Tenant ID | `11111111-1111-1111-1111-111111111111` |
 | Users | `admin@avaentra.local`, `alice@avaentra.local`, `bob@avaentra.local` |
-| Password | `Passw0rd!` |
 | SPA client ID | `55555555-5555-5555-5555-555555555555` |
 | API audience | `api://sample-api` |
 | API scope | `api://sample-api/access_as_user` |
 | Backend client ID | `77777777-7777-7777-7777-777777777777` |
-| Backend secret | `dev-backend-secret` |
 
-The login page lists seed users for one-click sign-in.
+The management UI requires admin login. The IdP login page (for SPAs) lists seed directory users for one-click sign-in.
 
 ## Point your apps at AvaEntra
 

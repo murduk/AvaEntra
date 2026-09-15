@@ -31,3 +31,4 @@ server/storage/
 .github
 README.md
 .dockerignore
+directory.json

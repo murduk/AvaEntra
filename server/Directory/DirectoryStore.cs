@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AvaEntra.Server.Identity;
+using Microsoft.Extensions.Options;
 
 namespace AvaEntra.Server.Data;
 
@@ -10,6 +11,7 @@ public sealed class DirectoryStore
     private readonly string _path;
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly ILogger<DirectoryStore> _log;
+    private readonly AvaEntraOptions _options;
     private DirectorySnapshot _data = new();
 
     public static readonly JsonSerializerOptions JsonOptions = new()
@@ -20,9 +22,10 @@ public sealed class DirectoryStore
         PropertyNameCaseInsensitive = true
     };
 
-    public DirectoryStore(IWebHostEnvironment env, ILogger<DirectoryStore> log)
+    public DirectoryStore(IWebHostEnvironment env, ILogger<DirectoryStore> log, IOptions<AvaEntraOptions> options)
     {
         _log = log;
+        _options = options.Value;
         var dir = Path.Combine(env.ContentRootPath, "storage");
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "directory.json");
@@ -40,21 +43,21 @@ public sealed class DirectoryStore
             return;
         }
 
-        _data = SeedData.Create();
+        _data = SeedData.Create(_options);
         SaveUnlocked();
         _log.LogInformation("""
             First-run directory seeded.
               Admin UI:        http://localhost:5100
               Tenant ID:       {Tenant}
               Users:           admin@avaentra.local, alice@avaentra.local, bob@avaentra.local
-              Password:        {Password}
+              Password:        (from AvaEntra__SeedUserPassword)
               SPA client ID:   {Spa}
               API audience:    {Api}
               Backend client:  {Backend}
-              Backend secret:  {Secret}
+              Backend secret:  (from AvaEntra__SeedBackendSecret)
             """,
-            _data.Tenant.Id, WellKnown.DefaultPassword, WellKnown.SpaClientId,
-            WellKnown.ApiIdentifier, WellKnown.BackendClientId, WellKnown.BackendSecret);
+            _data.Tenant.Id, WellKnown.SpaClientId,
+            WellKnown.ApiIdentifier, WellKnown.BackendClientId);
     }
 
     public T Read<T>(Func<DirectorySnapshot, T> read)

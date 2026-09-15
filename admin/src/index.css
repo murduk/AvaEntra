@@ -117,3 +117,21 @@ tr.clickable:hover td { background: #f5f9fc; }
   .sidebar { display: none; }
   .grid.stats, .grid.two { grid-template-columns: 1fr; }
 }
+
+.login-screen {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--sidebar);
+}
+.login-card {
+  width: min(400px, 100%);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+}
+.login-card h1 { font-size: 20px; margin: 8px 0 4px; }
+.login-card .brand { color: var(--text); }
+

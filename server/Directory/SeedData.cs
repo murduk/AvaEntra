@@ -4,9 +4,11 @@ namespace AvaEntra.Server.Data;
 
 public static class SeedData
 {
-    public static DirectorySnapshot Create()
+    public static DirectorySnapshot Create(AvaEntraOptions options)
     {
-        var password = Crypto.HashPassword(WellKnown.DefaultPassword);
+        var userPassword = Require(options.SeedUserPassword, nameof(options.SeedUserPassword));
+        var backendSecret = Require(options.SeedBackendSecret, nameof(options.SeedBackendSecret));
+        var password = Crypto.HashPassword(userPassword);
         var now = DateTimeOffset.UtcNow;
 
         var admin = new DirectoryUser
@@ -127,8 +129,8 @@ public static class SeedData
                 {
                     ApplicationId = backend.Id,
                     DisplayName = "Seed secret",
-                    SecretHash = Crypto.HashSecret(WellKnown.BackendSecret),
-                    Hint = WellKnown.BackendSecret[^3..],
+                    SecretHash = Crypto.HashSecret(backendSecret),
+                    Hint = backendSecret.Length >= 3 ? backendSecret[^3..] : backendSecret,
                     CreatedAt = now
                 }
             ],
@@ -157,5 +159,12 @@ public static class SeedData
                 new AppRoleAssignment { UserId = WellKnown.BobUserId, ApplicationId = api.Id, AppRoleId = WellKnown.ApiReaderRoleId }
             ]
         };
+    }
+
+    private static string Require(string? value, string name)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new InvalidOperationException($"{name} must be set (config AvaEntra:{name} or env AvaEntra__{name}).");
+        return value;
     }
 }
