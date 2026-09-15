@@ -14,20 +14,15 @@ RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+# Repo nuget.config is dockerignored. Never copy it into the image.
 COPY server/AvaEntra.Server.csproj server/
-# Repo nuget.config is dockerignored. Restore only from public nuget.org.
-RUN printf '%s\n' \
-      '<?xml version="1.0" encoding="utf-8"?>' \
-      '<configuration>' \
-      '  <packageSources>' \
-      '    <clear />' \
-      '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />' \
-      '  </packageSources>' \
-      '</configuration>' > nuget.config \
-    && dotnet restore server/AvaEntra.Server.csproj --configfile nuget.config --source https://api.nuget.org/v3/index.json
+RUN dotnet restore server/AvaEntra.Server.csproj \
+      --source https://api.nuget.org/v3/index.json \
+      --ignore-failed-sources
 COPY server/ server/
 COPY --from=admin /src/server/wwwroot server/wwwroot
-RUN dotnet publish server/AvaEntra.Server.csproj -c Release -o /app --no-restore --configfile nuget.config
+# Publish uses the already-restored packages; no nuget.config involved.
+RUN dotnet publish server/AvaEntra.Server.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
