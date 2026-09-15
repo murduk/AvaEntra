@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Local NuGet feed — image builds must use nuget.org
+nuget.config
+
+# Build outputs
+**/bin
+**/obj
+**/node_modules
+admin/dist
+server/wwwroot
+
+# Runtime data
+**/data
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# IDE / OS
+.vs
+.idea
+.cursor
+**/.DS_Store
+**/*.user
+**/*.log
+
+# CI / docs
+.github
+README.md
+.dockerignore

@@ -36,6 +36,26 @@ Then open [http://localhost:5100](http://localhost:5100).
 
 This is a local development tool. Do not expose it to the internet.
 
+## Docker
+
+The image restores NuGet packages from **nuget.org** (the local `nuget.config` is not used). CI builds and pushes to GitHub Container Registry on `main` / version tags.
+
+```bash
+docker build -t avaentra .
+docker run --rm -p 5100:8080 \
+  -e AvaEntra__PublicOrigin=http://localhost:5100 \
+  -v avaentra-data:/app/data \
+  avaentra
+```
+
+Then open [http://localhost:5100](http://localhost:5100). Set `AvaEntra__PublicOrigin` to the URL your apps use to reach the container so issuers and discovery match.
+
+Published images (after a push to `main`):
+
+```bash
+docker pull ghcr.io/<owner>/avaentra:latest
+```
+
 ## Seed directory
 
 Created on first run in `server/data/`. Delete that folder to reset.
