@@ -21,16 +21,15 @@ RUN dotnet restore server/AvaEntra.Server.csproj \
       --ignore-failed-sources
 COPY server/ server/
 COPY --from=admin /src/server/wwwroot server/wwwroot
-# Publish uses the already-restored packages; no nuget.config involved.
 RUN dotnet publish server/AvaEntra.Server.csproj -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-RUN mkdir -p /app/data && chown -R $APP_UID /app/data
+RUN mkdir -p /app/storage && chown -R $APP_UID /app/storage
 COPY --from=build /app .
 USER $APP_UID
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
-VOLUME /app/data
+VOLUME /app/storage
 ENTRYPOINT ["dotnet", "AvaEntra.Server.dll"]

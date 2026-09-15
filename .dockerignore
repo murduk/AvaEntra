@@ -13,8 +13,10 @@ nuget.config
 admin/dist
 server/wwwroot
 
-# Runtime data
-**/data
+# Runtime persistence (avoid **/data — it also excluded source folder server/Data)
+server/storage/
+server/Data/directory.json
+server/Data/signing-key.json
 **/*.db
 **/*.db-shm
 **/*.db-wal

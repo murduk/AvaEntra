@@ -19,7 +19,7 @@ public sealed class SigningKeyService
 
     public SigningKeyService(IWebHostEnvironment env)
     {
-        var dir = Path.Combine(env.ContentRootPath, "data");
+        var dir = Path.Combine(env.ContentRootPath, "storage");
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "signing-key.json");
     }

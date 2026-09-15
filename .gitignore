@@ -6,6 +6,7 @@ obj/
 *.db-shm
 *.db-wal
 data/
+storage/
 node_modules/
 dist/
 .DS_Store

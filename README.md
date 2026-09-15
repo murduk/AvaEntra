@@ -44,7 +44,7 @@ The image restores NuGet packages from **nuget.org** (the local `nuget.config` i
 docker build -t avaentra .
 docker run --rm -p 5100:8080 \
   -e AvaEntra__PublicOrigin=http://localhost:5100 \
-  -v avaentra-data:/app/data \
+  -v avaentra-data:/app/storage \
   avaentra
 ```
 
@@ -58,7 +58,7 @@ docker pull ghcr.io/<owner>/avaentra:latest
 
 ## Seed directory
 
-Created on first run in `server/data/`. Delete that folder to reset.
+Created on first run in `server/storage/`. Delete that folder to reset.
 
 | Item | Value |
 | --- | --- |
@@ -171,4 +171,4 @@ Access tokens include `oid`, `tid`, `preferred_username`, `scp`, `roles`, `group
 - **App registrations** — SPA / web / API / confidential clients, redirect URIs, client secrets, exposed scopes, app roles, PKCE / OBO / client-credentials flags
 - **Sign-in logs** — recent token issuances
 
-Directory data is stored as JSON in `server/data/directory.json`. The signing key is in `server/data/signing-key.json`.
+Directory data is stored as JSON in `server/storage/directory.json`. The signing key is in `server/storage/signing-key.json`.
