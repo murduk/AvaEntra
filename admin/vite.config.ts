@@ -1,6 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const idp = {
+  target: "https://localhost:5100",
+  secure: false,
+  changeOrigin: true
+};
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -10,12 +16,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://localhost:5100",
-      "/login": "http://localhost:5100",
-      "/oauth2": "http://localhost:5100",
-      "/v1.0": "http://localhost:5100",
-      "/oidc": "http://localhost:5100",
-      "/discovery": "http://localhost:5100"
+      "/api": idp,
+      "/login": idp,
+      "/oauth2": idp,
+      "/v1.0": idp,
+      "/oidc": idp,
+      "/discovery": idp
     }
   }
 });

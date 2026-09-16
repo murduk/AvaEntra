@@ -47,7 +47,7 @@ public sealed class DirectoryStore
         SaveUnlocked();
         _log.LogInformation("""
             First-run directory seeded.
-              Admin UI:        http://localhost:5100
+              Admin UI:        https://localhost:5100
               Tenant ID:       {Tenant}
               Users:           admin@avaentra.local, alice@avaentra.local, bob@avaentra.local
               Password:        (from AvaEntra__SeedUserPassword)

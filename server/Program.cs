@@ -9,6 +9,12 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var httpsCert = DevHttpsCertificate.Ensure(builder.Environment.ContentRootPath);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureHttpsDefaults(https => https.ServerCertificate = httpsCert);
+});
+
 builder.Services.Configure<AvaEntraOptions>(builder.Configuration.GetSection(AvaEntraOptions.SectionName));
 builder.Services.AddSingleton<DirectoryStore>();
 builder.Services.AddSingleton<CodeStore>();
@@ -21,6 +27,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "AvaEntra.Session";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.Events.OnRedirectToLogin = ctx =>
@@ -39,6 +46,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = AdminAuth.CookieName;
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.Events.OnRedirectToLogin = ctx =>
@@ -90,5 +98,8 @@ app.MapIdentityEndpoints();
 app.MapAdminEndpoints();
 app.MapGraphEndpoints();
 app.MapFallbackToFile("index.html");
+
+app.Logger.LogInformation(
+    "HTTPS enabled with local certificate at storage/https-dev.pfx (browsers will warn until trusted).");
 
 app.Run();

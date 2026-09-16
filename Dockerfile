@@ -28,12 +28,13 @@ WORKDIR /app
 RUN mkdir -p /app/storage && chown -R $APP_UID /app/storage
 COPY --from=build /app .
 USER $APP_UID
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=https://+:8443
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV AvaEntra__PublicOrigin=https://localhost:5100
 ENV AvaEntra__SeedUserPassword=Passw0rd!
 ENV AvaEntra__SeedBackendSecret=dev-backend-secret
 ENV AvaEntra__AdminUsername=admin
 ENV AvaEntra__AdminPassword=AdminPassw0rd!
-EXPOSE 8080
+EXPOSE 8443
 VOLUME /app/storage
 ENTRYPOINT ["dotnet", "AvaEntra.Server.dll"]

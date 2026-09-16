@@ -22,8 +22,8 @@ npm install
 npm run dev
 ```
 
-- Admin UI: [http://localhost:5173](http://localhost:5173)
-- Identity host: [http://localhost:5100](http://localhost:5100)
+- Admin UI (Vite): [http://localhost:5173](http://localhost:5173)
+- Identity host: [https://localhost:5100](https://localhost:5100)
 
 To serve the admin UI from the same host as identity:
 
@@ -32,7 +32,9 @@ cd admin && npm run build
 dotnet run --project server
 ```
 
-Then open [http://localhost:5100](http://localhost:5100).
+Then open [https://localhost:5100](https://localhost:5100).
+
+AvaEntra listens on **HTTPS** using a self-signed certificate at `server/storage/https-dev.pfx` (created on first run). Your browser will warn until you trust that cert — for local testing that’s expected. Use `curl -k` when calling the API from the CLI.
 
 This is a local development tool. Do not expose it to the internet.
 
@@ -42,8 +44,8 @@ The image restores NuGet packages from **nuget.org** (the local `nuget.config` i
 
 ```bash
 docker build -t avaentra .
-docker run --rm -p 5100:8080 \
-  -e AvaEntra__PublicOrigin=http://localhost:5100 \
+docker run --rm -p 5100:8443 \
+  -e AvaEntra__PublicOrigin=https://localhost:5100 \
   -e AvaEntra__SeedUserPassword=Passw0rd! \
   -e AvaEntra__SeedBackendSecret=dev-backend-secret \
   -e AvaEntra__AdminUsername=admin \
@@ -52,7 +54,7 @@ docker run --rm -p 5100:8080 \
   avaentra
 ```
 
-Then open [http://localhost:5100](http://localhost:5100). Set `AvaEntra__PublicOrigin` to the URL your apps use to reach the container so issuers and discovery match.
+Then open [https://localhost:5100](https://localhost:5100). Set `AvaEntra__PublicOrigin` to the URL your apps use to reach the container so issuers and discovery match.
 
 Published images (after a push to `main`):
 
@@ -89,7 +91,7 @@ The management UI requires admin login. The IdP login page (for SPAs) lists seed
 Authority:
 
 ```text
-http://localhost:5100/11111111-1111-1111-1111-111111111111
+https://localhost:5100/11111111-1111-1111-1111-111111111111
 ```
 
 ### SPA (MSAL.js + PKCE)
@@ -100,7 +102,7 @@ Register your redirect URI on the Sample SPA (or a new public client) in the adm
 const msalConfig = {
   auth: {
     clientId: "55555555-5555-5555-5555-555555555555",
-    authority: "http://localhost:5100/11111111-1111-1111-1111-111111111111",
+    authority: "https://localhost:5100/11111111-1111-1111-1111-111111111111",
     knownAuthorities: ["localhost:5100"],
     redirectUri: "http://localhost:3000"
   }
@@ -111,27 +113,20 @@ const loginRequest = {
 };
 ```
 
+MSAL needs the browser to accept AvaEntra’s self-signed cert (open `https://localhost:5100` once and trust/proceed).
+
 ### API (Microsoft.Identity.Web)
 
 ```json
 "AzureAd": {
-  "Instance": "http://localhost:5100/",
+  "Instance": "https://localhost:5100/",
   "TenantId": "11111111-1111-1111-1111-111111111111",
   "ClientId": "66666666-6666-6666-6666-666666666666",
   "Audience": "api://sample-api"
 }
 ```
 
-Allow HTTP metadata in development:
-
-```csharp
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-builder.Services.Configure<JwtBearerOptions>(
-    JwtBearerDefaults.AuthenticationScheme,
-    options => options.RequireHttpsMetadata = false);
-```
+If your API host doesn’t trust the local IdP cert yet, keep metadata over HTTPS but allow untrusted certs only in Development, or trust `server/storage/https-dev.pfx`.
 
 ### On-behalf-of (middle-tier API → downstream API)
 
@@ -152,7 +147,7 @@ The Sample Backend app has OBO and client credentials enabled. Enable **On-behal
 ### Resource owner password (scripts / tests)
 
 ```bash
-curl -s http://localhost:5100/11111111-1111-1111-1111-111111111111/oauth2/v2.0/token \
+curl -sk https://localhost:5100/11111111-1111-1111-1111-111111111111/oauth2/v2.0/token \
   -d grant_type=password \
   -d client_id=55555555-5555-5555-5555-555555555555 \
   -d username=alice@avaentra.local \

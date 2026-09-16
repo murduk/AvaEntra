@@ -121,7 +121,8 @@ public static class SeedData
                 new RedirectUri { ApplicationId = spa.Id, Uri = "http://localhost:5173/", Type = "spa" },
                 new RedirectUri { ApplicationId = spa.Id, Uri = "http://localhost:4200", Type = "spa" },
                 new RedirectUri { ApplicationId = spa.Id, Uri = "http://127.0.0.1:3000", Type = "spa" },
-                new RedirectUri { ApplicationId = spa.Id, Uri = "http://localhost:5100/dev/callback", Type = "spa" }
+                new RedirectUri { ApplicationId = spa.Id, Uri = "http://localhost:5100/dev/callback", Type = "spa" },
+                new RedirectUri { ApplicationId = spa.Id, Uri = "https://localhost:5100/dev/callback", Type = "spa" }
             ],
             Secrets =
             [
